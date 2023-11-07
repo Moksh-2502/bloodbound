@@ -1,0 +1,277 @@
+#include <iostream>
+#include <string>
+#include <ctime>
+#include <vector>
+
+struct DonationRecord {
+    time_t donation_time;
+    DonationRecord* next;
+};
+
+struct Node {
+    std::string name;
+    std::string location;
+    std::string blood_type;
+    std::string contact_info;
+    time_t last_donation_time;
+    int donations_count;
+    DonationRecord* donation_history;
+    Node* next;
+};
+
+Node* head = nullptr;
+
+
+void registerDonor() {
+    Node* newNode = new Node();
+    std::cout << "Enter your name: ";
+    std::cin >> newNode->name;
+    std::cout << "Enter your location: ";
+    std::cin >> newNode->location;
+    std::cout << "Enter your blood type: ";
+    std::cin >> newNode->blood_type;
+    std::cout << "Enter your contact information: ";
+    std::cin >> newNode->contact_info;
+
+    newNode->last_donation_time = 0;
+    newNode->donations_count = 0;
+    newNode->donation_history = nullptr;
+
+    newNode->next = head;
+    head = newNode;
+}
+
+
+void addDonationRecord(Node* donor) {
+    time_t currentTime = time(nullptr);
+
+    DonationRecord* newRecord = new DonationRecord();
+    newRecord->donation_time = currentTime;
+    newRecord->next = donor->donation_history;
+    donor->donation_history = newRecord;
+}
+
+bool isDonorEligible(Node* donor) {
+    time_t currentTime = time(nullptr);
+
+    if (currentTime - donor->last_donation_time >= 90 * 24 * 60 * 60) {
+        return true;
+    }
+    return false;
+}
+
+void donateBlood() {
+    std::string donorName;
+    std::cout << "Enter your name as a donor: ";
+    std::cin >> donorName;
+
+    Node* current = head;
+
+    while (current != nullptr) {
+        if (current->name == donorName) {
+            if (isDonorEligible(current)) {
+                std::cout << "You are eligible to donate blood. Thank you for your donation!" << std::endl;
+                current->last_donation_time = time(nullptr);
+                current->donations_count++;
+                addDonationRecord(current);
+            } else {
+                std::cout << "Sorry, you are not eligible to donate blood at this time. You must wait for 3 months after your last donation." << std::endl;
+            }
+            return;
+        }
+        current = current->next;
+    }
+
+    std::cout << donorName << " not found in the list of donors." << std::endl;
+}
+
+void registerPatient() {
+    std::string patientBloodType;
+    std::string patientLocation;
+
+    std::cout << "Enter the patient's blood type: ";
+    std::cin >> patientBloodType;
+    std::cout << "Enter the patient's location: ";
+    std::cin >> patientLocation;
+
+    Node* current = head;
+    while (current != nullptr) {
+        if (current->blood_type == patientBloodType && current->location == patientLocation) {
+            std::cout << "Matching donor found:" << std::endl;
+            std::cout << "Name: " << current->name << std::endl;
+            std::cout << "Contact Info: " << current->contact_info << std::endl;
+            return; 
+        }
+        current = current->next;
+    }
+
+    std::cout << "No matching donor found." << std::endl;
+}
+void displayList(const std::string& listType) {
+    std::cout << "List of " << listType << "s:" << std::endl;
+
+    Node* current = head;
+    while (current != nullptr) {
+        if (listType == "Donor") {
+            if (current->blood_type != "Patient") {
+                std::cout << "Name: " << current->name << " | Location: " << current->location
+                          << " | Blood Type: " << current->blood_type << " | Contact Info: " << current->contact_info << std::endl;
+            }
+        } else if (listType == "Patient") {
+            if (current->blood_type == "Patient") {
+                std::cout << "Name: " << current->name << " | Location: " << current->location
+                          << " | Blood Type: " << current->blood_type << " | Contact Info: " << current->contact_info << std::endl;
+            }
+        }
+        current = current->next;
+    }
+}
+void unregister(const std::string& listType) {
+    std::string nameToRemove;
+    std::cout << "Enter the name of the " << listType << " to unregister: ";
+    std::cin >> nameToRemove;
+
+    Node* current = head;
+    Node* previous = nullptr;
+
+    while (current != nullptr) {
+        if (current->name == nameToRemove) {
+            if (previous == nullptr) {
+                head = current->next;
+            } else {
+                previous->next = current->next;
+            }
+            delete current; 
+            std::cout << "Successfully unregistered " << nameToRemove << std::endl;
+            return;
+        }
+        previous = current;
+        current = current->next;
+    }
+
+    std::cout << nameToRemove << " not found in the list of " << listType << "s." << std::endl;
+}
+
+void generateCertificate(Node* donor) {
+    std::cout << "Certificate of Appreciation" << std::endl;
+    std::cout << "Dear " << donor->name << "," << std::endl;
+    std::cout << "We sincerely thank you for donating blood " << donor->donations_count << " time(s). Your contribution has saved lives and made a difference." << std::endl;
+    std::cout << "With utmost gratitude," << std::endl;
+    std::cout << "Blood Donation Center" << std::endl;
+}
+
+
+
+void viewDonationHistory(Node* donor) {
+    if (donor->donation_history == nullptr) {
+        std::cout << "No donation history available for " << donor->name << std::endl;
+        return;
+    }
+
+    std::cout << "Donation History for " << donor->name << ":" << std::endl;
+
+    DonationRecord* currentRecord = donor->donation_history;
+    int donationCount = 1;
+
+    while (currentRecord != nullptr) {
+        struct tm* timeinfo = localtime(&currentRecord->donation_time);
+        char buffer[80];
+        strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+        std::cout << "Donation " << donationCount << ": " << buffer << std::endl;
+        currentRecord = currentRecord->next;
+        donationCount++;
+    }
+}
+
+
+
+
+int main() {
+    int choice;
+        do {
+        std::cout << "Blood Donation System" << std::endl;
+        std::cout << "1. Register as a Donor" << std::endl;
+        std::cout << "2. Register as a Patient and Find a Donor" << std::endl;
+        std::cout << "3. Display List of Donors" << std::endl;
+        std::cout << "4. Display List of Patients" << std::endl;
+        std::cout << "5. Unregister a Donor" << std::endl;
+        std::cout << "6. Unregister a Patient" << std::endl;
+        std::cout << "7. Update Donor Information" << std::endl;
+        std::cout << "8. Donate Blood" << std::endl;
+        std::cout << "9. Confirm Blood Donation and Generate Certificate" << std::endl;
+        std::cout << "10. View Donation History" << std::endl;
+        std::cout << "11. Quit" << std::endl;
+        std::cout << "Enter your choice: ";
+        std::cin >> choice;
+
+        switch (choice) {
+            case 1:
+                registerDonor();
+                break;
+            case 2:
+                registerPatient();
+                break;
+            case 3:
+                displayList("Donor");
+                break;
+            case 4:
+                displayList("Patient");
+                break;
+            case 5:
+                unregister("Donor");
+                break;
+            case 6:
+                unregister("Patient");
+                break;
+            case 7:
+                //updateDonorInfo();
+                break;
+            case 8:
+                donateBlood();
+                break;
+            case 9:{
+                std::string donorName;
+                std::cout << "Enter donor's name: ";
+                std::cin >> donorName;
+                Node* current = head;
+                while (current != nullptr) {
+                    if (current->name == donorName) {
+                        generateCertificate(current);
+                        break;
+                    }
+                    current = current->next;
+                }
+                if (current == nullptr) {
+                    std::cout << "Donor not found." << std::endl;
+                }
+                break;
+            }
+                break;
+            case 10:{
+                std::string donorName;
+                std::cout << "Enter donor's name: ";
+                std::cin >> donorName;
+                Node* current = head;
+                while (current != nullptr) {
+                    if (current->name == donorName) {
+                        viewDonationHistory(current);
+                        break;
+                    }
+                    current = current->next;
+                }
+                if (current == nullptr) {
+                    std::cout << "Donor not found." << std::endl;
+                }
+                break;
+            }
+            case 11:
+                std::cout << "Goodbye!" << std::endl;
+                break;
+            default:
+                std::cout << "Invalid choice. Please try again." << std::endl;
+                break;
+        }
+    } while (choice != 11);
+
+    return 0;
+}
