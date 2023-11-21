@@ -10,6 +10,11 @@ struct DonationRecord {
     DonationRecord* next;
 };
 
+struct MedicalCertificate {
+    std::string donor_name;
+    std::string certificate_path;
+};
+
 struct Node {
     std::string name;
     std::string location;
@@ -18,12 +23,14 @@ struct Node {
     time_t last_donation_time;
     int donations_count;
     DonationRecord* donation_history;
+    MedicalCertificate* certificate_info;
     Node* next;
 };
 
 Node* head = nullptr;
+
 void saveDataToFile() {
-    std::ofstream file("donor_data.txt"); 
+    std::ofstream file("donor_data.txt");
 
     Node* current = head;
     while (current != nullptr) {
@@ -35,13 +42,14 @@ void saveDataToFile() {
             file << record->donation_time << ",";
             record = record->next;
         }
-        file << "-1\n"; 
+        file << "-1\n";
 
         current = current->next;
     }
 
-    file.close(); 
+    file.close();
 }
+
 void loadDataFromFile() {
     std::ifstream file("donor_data.txt");
 
@@ -81,9 +89,8 @@ void loadDataFromFile() {
         head = newNode;
     }
 
-    file.close(); 
+    file.close();
 }
-
 
 void registerDonor() {
     Node* newNode = new Node();
@@ -100,10 +107,13 @@ void registerDonor() {
     newNode->donations_count = 0;
     newNode->donation_history = nullptr;
 
+    newNode->certificate_info = new MedicalCertificate(); // Initialize the certificate_info
+    newNode->certificate_info->donor_name = newNode->name; // Set donor name
+    newNode->certificate_info->certificate_path = ""; // Initially empty path for the certificate
+
     newNode->next = head;
     head = newNode;
 }
-
 
 void addDonationRecord(Node* donor) {
     time_t currentTime = time(nullptr);
@@ -250,7 +260,6 @@ void viewDonationHistory(Node* donor) {
 
 
 int main() {
-    loadDataFromFile();
     int choice;
         do {
         std::cout << "Blood Donation System" << std::endl;
